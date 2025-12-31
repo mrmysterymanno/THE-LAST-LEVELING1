@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE LAST LEVELING</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #bc13fe;
+            --neon-gold: #ffd700;
+            --danger: #ff4757;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; font-family: 'Rajdhani', sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #050505; color: white; }
+
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; background-size: cover; background-position: center; z-index: 1; }
+        .active { display: flex; }
+        .screen::before { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 0; }
+
+        /* UI BOXES */
+        .login-box { width: 340px; z-index: 2; background: var(--glass); backdrop-filter: blur(15px); padding: 30px; border-radius: 20px; border: 1px solid var(--glass-border); text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); position: relative;}
+        .login-box::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink)); }
+        
+        input { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border: none; border-bottom: 2px solid #555; color: white; font-size: 1rem; outline: none; transition: 0.3s; }
+        input:focus { border-bottom-color: var(--neon-blue); background: rgba(0, 243, 255, 0.1); }
+        
+        button { padding: 10px 18px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; clip-path: polygon(8% 0, 100% 0, 100% 75%, 92% 100%, 0 100%, 0 25%); font-size: 0.9rem; }
+        .btn-primary { background: var(--neon-blue); color: #000; box-shadow: 0 0 12px rgba(0, 243, 255, 0.4); }
+        .btn-gold { background: var(--neon-gold); color: #000; box-shadow: 0 0 10px gold; }
+        .btn-secondary { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); }
+        .btn-lobby { background: #333; color: white; border: 1px solid #555; }
+
+        /* TOP NAV */
+        .top-nav { position: absolute; top: 25px; width: 100%; padding: 0 20px; display: flex; justify-content: flex-start; align-items: flex-start; gap: 10px; z-index: 10; }
+        .coin-pill { background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 50px; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 0.9rem; min-width: 100px; }
+        .coin-icon { width: 18px; height: 18px; filter: drop-shadow(0 0 5px var(--neon-gold)); }
+        
+        .box-interact { display: flex; align-items: center; gap: 5px; }
+        .btn-open-box { background: var(--neon-pink); font-size: 0.7rem; padding: 5px 10px; clip-path: none; border-radius: 5px; min-width: auto; height: 25px; color: white;}
+
+        /* HUD */
+        .hud-left { position: absolute; top: 20px; left: 20px; text-shadow: 2px 2px #000; font-weight: 900; z-index: 5; pointer-events: none; }
+        .hp-cont { width: 160px; height: 14px; background: #222; border: 1px solid #fff; margin: 5px 0; }
+        #hp-bar { width: 100%; height: 100%; background: var(--danger); transition: 0.1s; }
+
+        /* RESULT */
+        #result-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; pointer-events: auto; }
+        .result-card { background: var(--glass); border: 1px solid var(--neon-blue); padding: 30px; border-radius: 20px; text-align: center; width: 320px; backdrop-filter: blur(15px); }
+        .btn-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; width: 100%; }
+        
+        /* ANIMATIONS */
+        .floating-reward { position: absolute; color: var(--neon-gold); font-weight: 900; font-size: 1.8rem; text-shadow: 0 0 10px #000; pointer-events: none; z-index: 100; animation: floatUp 1.2s ease-out forwards; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+
+        .controls { position: absolute; bottom: 30px; display: flex; gap: 20px; pointer-events: auto; z-index: 10; }
+        .ctrl-btn { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #fff; background: rgba(255,255,255,0.1); color: white; font-size: 2rem; display: flex; align-items: center; justify-content: center; }
+        .fight-btn { width: 100px; height: 100px; border-color: var(--danger); background: rgba(255,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+    <!-- SCREEN: LOGIN -->
+    <div id="login-screen" class="screen active">
+        <div class="login-box">
+            <h2 style="letter-spacing: 3px;">THE LAST LEVELING</h2>
+            <input type="email" id="email" placeholder="EMAIL">
+            <input type="password" id="password" placeholder="PASSWORD">
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" id="btn-login" style="flex:1">LOGIN</button>
+                <button class="btn-secondary" id="btn-signup" style="flex:1">JOIN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN: LOBBY -->
+    <div id="lobby-screen" class="screen" style="background-image: url('assets/backgrounds/lobbyBg.jpg');">
+        <div class="top-nav">
+            <div class="coin-pill"><img src="assets/coins/coin1.png" class="coin-icon"><span id="coin-p">0</span></div>
+            <div class="box-interact">
+                <div class="coin-pill"><img src="assets/box/mainBox.png" class="coin-icon"><span id="coin-b">0</span></div>
+                <button class="btn-open-box" id="open-box-btn" style="display:none;">OPEN</button>
+            </div>
+        </div>
+        <div style="z-index: 2; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+            <div style="font-weight: 900; font-size: 1.5rem;">MISSION ZONE <span id="lobby-lvl">1</span></div>
+            <button class="btn-primary" id="go-play" style="min-width: 180px;">START MISSION</button>
+            <button class="btn-lobby" id="btn-logout" style="min-width: 180px;">LOGOUT</button>
+        </div>
+    </div>
+
+    <!-- SCREEN: AGENT SELECT -->
+    <div id="char-screen" class="screen" style="background: #000;">
+        <h2 style="z-index: 2;">SELECT AGENT</h2>
+        <div style="display:flex; gap:20px; z-index:2; margin:30px 0;">
+            <div class="login-box" style="width:145px; padding:20px; border-color:var(--neon-blue)" id="card-kael" onclick="handleSelect('kael')">
+                <img src="assets/characters/kaelRiven_normal.png" style="width:80px">
+                <h3>KAEL</h3>
+                <div style="color:var(--neon-blue); font-weight:900; font-size:0.8rem">FREE</div>
+            </div>
+            <div class="login-box" style="width:145px; padding:20px; opacity:0.5" id="card-lyra" onclick="handleSelect('lyra')">
+                <img src="assets/characters/lyraVeil_normal.png" style="width:80px">
+                <h3>LYRA</h3>
+                <div id="lyra-cost-tag" style="color:var(--neon-gold); font-weight:900; font-size:0.7rem">500,000 COINS</div>
+            </div>
+        </div>
+        <button class="btn-primary" id="confirm-char" style="width:180px; z-index:2">DEPLOY</button>
+    </div>
+
+    <!-- SCREEN: GAMEPLAY -->
+    <div id="game-screen" class="screen" style="background-image: url('assets/backgrounds/arenaBg1.jpg');">
+        <canvas id="gameCanvas"></canvas>
+        <div class="hud-left">
+            <div>ZONE <span id="ui-lvl">1</span></div>
+            <div class="hp-cont"><div id="hp-bar"></div></div>
+            <div>WAVE: <span id="ui-kills">0</span>/10</div>
+        </div>
+        <div id="result-screen">
+            <div class="result-card">
+                <img id="box-drop-img" src="assets/box/mainBox.png" style="width:60px; margin:0 auto 15px; display: none;">
+                <h1 id="result-title">ZONE CLEAR</h1>
+                <div class="btn-stack">
+                    <button class="btn-primary" id="btn-replay">RETRY MISSION</button>
+                    <button class="btn-lobby" id="btn-to-lobby">BACK TO LOBBY</button>
+                </div>
+            </div>
+        </div>
+        <div class="controls" style="left: 20px;"><div class="ctrl-btn" id="btn-l">❮</div><div class="ctrl-btn" id="btn-r">❯</div></div>
+        <div class="controls" style="right: 20px;"><div class="ctrl-btn fight-btn" id="btn-f">⚔</div></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, update, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyAE20d38F34cPIQhNJT1180R4mIlCCSluI", authDomain: "the-last-leveling.firebaseapp.com", databaseURL: "https://the-last-leveling-default-rtdb.firebaseio.com", projectId: "the-last-leveling", storageBucket: "the-last-leveling.firebasestorage.app", messagingSenderId: "677209834678", appId: "1:677209834678:web:f26ac44d59f3867c9c9217" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // --- AUDIO ---
+        const tracks = { intro: new Audio('assets/music/risingHunter.mp3'), lobby: new Audio('assets/music/shadowLobby.mp3'), battle: new Audio('assets/music/battlePulse.mp3') };
+        Object.values(tracks).forEach(t => { t.loop = true; t.volume = 0.5; });
+        let currentTrack = null;
+        function playMusic(k) { if(currentTrack) currentTrack.pause(); currentTrack = tracks[k]; currentTrack.play().catch(()=>{}); }
+        document.body.addEventListener('touchstart', () => { if(currentTrack && currentTrack.paused) currentTrack.play(); }, {once: true});
+
+        // --- STATE ---
+        let userData = { power: 0, level: 1, boxes: 0, unlockedLyra: false };
+        let user = null;
+        let charId = 'kaelRiven';
+        let kills = 0;
+        let gameActive = false;
+        let gameLoopId = null;
+
+        const saveToDB = () => { if (user) update(ref(db, 'users/' + user.uid), userData); };
+
+        const syncUI = () => {
+            document.getElementById('coin-p').innerText = Math.floor(userData.power || 0).toLocaleString();
+            document.getElementById('coin-b').innerText = Math.floor(userData.boxes || 0);
+            document.getElementById('lobby-lvl').innerText = userData.level;
+            document.getElementById('open-box-btn').style.display = (userData.boxes > 0) ? "block" : "none";
+        };
+
+        const show = (id) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'login-screen') playMusic('intro');
+            if(id === 'lobby-screen' || id === 'char-screen') { syncUI(); if(currentTrack !== tracks.lobby) playMusic('lobby'); }
+            if(id === 'game-screen') playMusic('battle');
+            if(id === 'char-screen') {
+                const tag = document.getElementById('lyra-cost-tag');
+                if(userData.unlockedLyra) { tag.innerText = "UNLOCKED"; tag.style.color = "#0f0"; }
+            }
+        };
+
+        onAuthStateChanged(auth, u => {
+            if (u) { user = u; get(child(ref(db), 'users/' + u.uid)).then(s => { if(s.exists()) userData = s.val(); show('lobby-screen'); }); }
+            else show('login-screen');
+        });
+
+        document.getElementById('btn-login').onclick = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value).catch(e => alert(e.message));
+        document.getElementById('btn-signup').onclick = () => createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value).then(u => {
+            userData = { power: 0, level: 1, boxes: 0, unlockedLyra: false };
+            set(ref(db, 'users/' + u.user.uid), userData);
+        }).catch(e => alert(e.message));
+        document.getElementById('btn-logout').onclick = () => { signOut(auth); playMusic('intro'); };
+
+        document.getElementById('open-box-btn').onclick = () => {
+            if(userData.boxes > 0) {
+                userData.boxes--;
+                const won = Math.floor(Math.random() * 491) + 10;
+                userData.power += won; saveToDB(); syncUI();
+                alert(`Won ${won} Coins!`);
+            }
+        };
+
+        window.handleSelect = (id) => {
+            if (id === 'lyra' && !userData.unlockedLyra) {
+                if (userData.power >= 500000) {
+                    if (confirm("Buy Lyra for 500k Coins?")) {
+                        userData.power -= 500000; userData.unlockedLyra = true;
+                        saveToDB(); syncUI(); show('char-screen');
+                    } else return;
+                } else { alert("Need 500,000 Coins!"); return; }
+            }
+            charId = (id === 'kael') ? 'kaelRiven' : 'lyraVeil';
+            document.getElementById('card-kael').style.opacity = (id==='kael'?'1':'0.5');
+            document.getElementById('card-lyra').style.opacity = (id==='lyra'?'1':'0.5');
+        };
+
+        document.getElementById('go-play').onclick = () => show('char-screen');
+        document.getElementById('confirm-char').onclick = () => { show('game-screen'); initGame(); };
+
+        // --- GAME ENGINE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let player = { x: 50, y: 0, w: 92, h: 92, hp: 100, isFight: false };
+        let monsters = [];
+
+        // Preload Monster Images
+        const imgSmall = new Image(); imgSmall.src = 'assets/monsters/monster_small.png';
+        const imgBoss = new Image(); imgBoss.src = 'assets/monsters/monster_boss.png';
+
+        function initGame() {
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            player.y = canvas.height - 150; player.hp = 100; player.x = 50; player.isFight = false;
+            kills = 0; monsters = []; gameActive = true;
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('ui-lvl').innerText = userData.level;
+            updateHUD(); loop();
+        }
+
+        function updateHUD() { document.getElementById('hp-bar').style.width = player.hp + "%"; document.getElementById('ui-kills').innerText = kills; }
+
+        function showFloatingPoints(x, y, amt) {
+            const div = document.createElement('div');
+            div.className = 'floating-reward'; div.innerText = `+${amt}`;
+            div.style.left = `${x}px`; div.style.top = `${y}px`;
+            document.getElementById('game-screen').appendChild(div);
+            setTimeout(() => div.remove(), 1200);
+        }
+
+        function loop() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const pImg = new Image();
+            pImg.src = `assets/characters/${charId}_${player.isFight ? 'fight' : 'normal'}.png`;
+            if (pImg.complete) ctx.drawImage(pImg, player.x, player.y, player.w, player.h);
+
+            // Spawner logic
+            if (Math.random() < 0.015 && monsters.length < 1 && kills < 10) {
+                const isB = (kills === 9);
+                monsters.push({ 
+                    x: canvas.width, y: isB ? canvas.height-230 : canvas.height-140, 
+                    w: isB ? 160 : 75, h: isB ? 160 : 75, 
+                    hp: isB ? (userData.level * 9) : userData.level, isB: isB, speed: 1.5 
+                });
+            }
+
+            monsters.forEach((m, i) => {
+                m.x -= m.speed; 
+                const mImg = m.isB ? imgBoss : imgSmall;
+                if(mImg.complete) ctx.drawImage(mImg, m.x, m.y, m.w, m.h);
+                else { ctx.fillStyle = m.isB ? "purple" : "red"; ctx.fillRect(m.x, m.y, m.w, m.h); }
+
+                // Combat Logic
+                const attackRange = player.w + 35;
+                if (player.isFight && m.x < player.x + attackRange && m.x + m.w > player.x) {
+                    m.hp -= 0.25; m.x += 15; // Knockback
+                    if (m.hp <= 0) { 
+                        const reward = Math.floor(Math.random()*7)+1;
+                        userData.power += reward; showFloatingPoints(m.x, m.y, reward);
+                        monsters.splice(i, 1); kills++; saveToDB(); updateHUD(); 
+                    }
+                } else if (m.x < player.x + player.w - 10 && m.x + m.w > player.x + 10) {
+                    player.hp -= 0.35; updateHUD(); if (player.hp <= 0) endGame(false);
+                }
+                if (m.x < -300) monsters.splice(i, 1);
+            });
+            if(kills >= 10 && monsters.length === 0) endGame(true);
+            gameLoopId = requestAnimationFrame(loop);
+        }
+
+        function endGame(win) {
+            gameActive = false;
+            document.getElementById('result-screen').style.display = 'flex';
+            if(win) {
+                document.getElementById('result-title').innerText = "ZONE CLEAR";
+                document.getElementById('box-drop-img').style.display = 'block';
+                userData.boxes++; userData.power += 50;
+            } else {
+                document.getElementById('result-title').innerText = "MISSION FAILED";
+                document.getElementById('box-drop-img').style.display = 'none';
+            }
+            saveToDB(); syncUI();
+        }
+
+        document.getElementById('btn-replay').onclick = () => initGame();
+        document.getElementById('btn-to-lobby').onclick = () => { gameActive = false; syncUI(); show('lobby-screen'); };
+
+        const tap = (btn, fn) => {
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, {passive:false});
+            btn.addEventListener('mousedown', (e) => { fn(); });
+        };
+        tap(document.getElementById('btn-l'), () => { if(gameActive && player.x > 0) player.x -= 45; });
+        tap(document.getElementById('btn-r'), () => { if(gameActive && player.x < canvas.width-player.w) player.x += 45; });
+        tap(document.getElementById('btn-f'), () => { if(gameActive && !player.isFight) { player.isFight = true; setTimeout(()=> player.isFight=false, 250); } });
+    </script>
+</body>
+</html>
